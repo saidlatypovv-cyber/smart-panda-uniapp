@@ -1,5 +1,16 @@
 (function() {
 
+window.SP_APP = {};
+
+window.SP_APP.getEl = function(id) {
+    const root = document.querySelector('.sp-new-app-instance') || document;
+    return root.querySelector('#' + id) || document.getElementById(id);
+};
+
+const appRoot = document.querySelector('.sp-new-app-instance') || document;
+const $el = window.SP_APP.getEl;
+const $qAll = (sel) => appRoot.querySelectorAll(sel);
+
 const normCountry = (c) => c ? c.toLowerCase().replace(/[\s\uFEFF\xA0]+/g, ' ').trim() : "";
 
 const SP_PREDICTOR_ICONS = {
@@ -113,8 +124,6 @@ const DB = {
     indices: { major_names: new Set(), uni_countries: new Set(), uni_names: new Set(), uni_majors: new Set(), uni_levels: new Set() }
 };
 
-window.SP_APP = {};
-
 SP_APP.execCmd = (cmd) => { document.execCommand(cmd, false, null); };
 
 const getVisualLength = (htmlStr) => {
@@ -141,7 +150,7 @@ function init() {
 
 async function loadData(isBackground = false) {
     if (!isBackground) {
-        const loader = document.getElementById('sp-loading');
+        const loader = $el('sp-loading');
         if(loader) loader.style.display = 'block';
     }
     const noCache = '&_=' + Date.now();
@@ -217,7 +226,7 @@ async function loadData(isBackground = false) {
         console.error(e);
     } finally {
         if (!isBackground) {
-            const loader = document.getElementById('sp-loading');
+            const loader = $el('sp-loading');
             if(loader) loader.style.display = 'none';
         }
     }
@@ -230,7 +239,7 @@ const navSteps = {
 };
 
 function renderNav() {
-    const c = document.getElementById('sp-steps-container');
+    const c = $el('sp-steps-container');
     const flow = state.flow || 'selection';
     const arr = navSteps[flow];
     
@@ -244,19 +253,19 @@ function renderNav() {
     c.innerHTML = html;
     
     const pct = arr.length > 1 ? (actIdx / (arr.length - 1)) * 100 : 0;
-    document.getElementById('sp-progress-bar').style.width = pct + '%';
+    $el('sp-progress-bar').style.width = pct + '%';
 }
 
 SP_APP.goTo = (id) => {
-    document.querySelectorAll('.sp-section').forEach(el => el.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
+    $qAll('.sp-section').forEach(el => el.classList.remove('active'));
+    $el(id).classList.add('active');
     state.activeSectionId = id;
     renderNav();
-    document.getElementById('sp-root-container').scrollTop = 0;
+    $el('sp-root-container').scrollTop = 0;
 };
 
 SP_APP.gotoFork = () => {
-    state.studentName = document.getElementById('inp-student').value.trim();
+    state.studentName = $el('inp-student').value.trim();
     if(!state.studentName) return alert("Введите имя");
     SP_APP.goTo('step-1-5');
 };
@@ -277,45 +286,45 @@ SP_APP.backFromSelectionMode = () => {
 
 /* --- DOSSIER LOGIC --- */
 SP_APP.addCustomCountry = () => {
-    const inp = document.getElementById('d-country-other'); const val = inp.value.trim(); if(!val) return;
-    const container = document.getElementById('custom-countries-container');
+    const inp = $el('d-country-other'); const val = inp.value.trim(); if(!val) return;
+    const container = $el('custom-countries-container');
     const lbl = document.createElement('label'); lbl.className = 'sp-checkbox-lbl';
     lbl.innerHTML = `<input type="checkbox" value="${val.replace(/"/g, '&quot;')}" checked> ${val}`;
     container.appendChild(lbl); inp.value = "";
 };
 
-SP_APP.syncDynamicList = (type) => { state.dossier[type] = Array.from(document.querySelectorAll(`#d-${type}-list input`)).map(inp => inp.value); };
+SP_APP.syncDynamicList = (type) => { state.dossier[type] = Array.from($qAll(`#d-${type}-list input`)).map(inp => inp.value); };
 SP_APP.addDynamicItem = (type) => { SP_APP.syncDynamicList(type); state.dossier[type].push(""); renderDynamicList(type); };
 SP_APP.removeDynamicItem = (type, i) => { SP_APP.syncDynamicList(type); state.dossier[type].splice(i, 1); renderDynamicList(type); };
 function renderDynamicList(type) {
-    const c = document.getElementById(`d-${type}-list`);
+    const c = $el(`d-${type}-list`);
     c.innerHTML = state.dossier[type].map((val, i) => `<div class="sp-dynamic-item"><input class="sp-input" value="${val.replace(/"/g, '&quot;')}" placeholder="Ввод..."><button onclick="SP_APP.removeDynamicItem('${type}', ${i})">×</button></div>`).join('');
 }
 
-SP_APP.syncRoadmap = () => { state.dossier.roadmap = Array.from(document.querySelectorAll('.sp-roadmap-item')).map(r => ({ action: r.querySelector('.r-action').value, date: r.querySelector('.r-date').value })); };
+SP_APP.syncRoadmap = () => { state.dossier.roadmap = Array.from($qAll('.sp-roadmap-item')).map(r => ({ action: r.querySelector('.r-action').value, date: r.querySelector('.r-date').value })); };
 SP_APP.addRoadmapItem = () => { SP_APP.syncRoadmap(); state.dossier.roadmap.push({action: "", date: ""}); SP_APP.renderRoadmap(); };
 SP_APP.removeRoadmapItem = (i) => { SP_APP.syncRoadmap(); state.dossier.roadmap.splice(i, 1); SP_APP.renderRoadmap(); };
 SP_APP.renderRoadmap = () => {
-    const c = document.getElementById('d-roadmap-list');
+    const c = $el('d-roadmap-list');
     c.innerHTML = state.dossier.roadmap.map((r, i) => `<div class="sp-roadmap-item"><input class="sp-input r-action" value="${r.action.replace(/"/g, '&quot;')}" placeholder="Действие (например: Составление подборки)"><input type="month" class="sp-input r-date" value="${r.date.replace(/"/g, '&quot;')}" placeholder="Срок (год и месяц)"><button class="sp-btn-small" style="background:#fee2e2; color:#dc2626; border:none; height:38px; width:38px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:16px;" onclick="SP_APP.removeRoadmapItem(${i})">×</button></div>`).join('');
 };
 
-SP_APP.syncSwotList = (cat) => { state.dossier.swot[cat] = Array.from(document.querySelectorAll(`#swot-${cat}-list .sp-swot-item-box`)).map(box => ({ title: box.querySelector('input').value, text: box.querySelector('textarea').value })); };
+SP_APP.syncSwotList = (cat) => { state.dossier.swot[cat] = Array.from($qAll(`#swot-${cat}-list .sp-swot-item-box`)).map(box => ({ title: box.querySelector('input').value, text: box.querySelector('textarea').value })); };
 SP_APP.addSwotItem = (cat) => { SP_APP.syncSwotList(cat); state.dossier.swot[cat].push({ title: "", text: "" }); renderSwotList(cat); };
 SP_APP.removeSwotItem = (cat, i) => { SP_APP.syncSwotList(cat); state.dossier.swot[cat].splice(i, 1); renderSwotList(cat); };
 function renderSwotList(cat) {
-    const c = document.getElementById(`swot-${cat}-list`);
+    const c = $el(`swot-${cat}-list`);
     c.innerHTML = state.dossier.swot[cat].map((item, i) => `<div class="sp-swot-item-box"><div style="display:flex; justify-content:space-between; margin-bottom:6px;"><input class="sp-input" style="font-weight:700" value="${item.title.replace(/"/g, '&quot;')}" placeholder="Заголовок"><button onclick="SP_APP.removeSwotItem('${cat}', ${i})" style="background:none; border:none; color:var(--sp-danger); cursor:pointer; font-size:18px; margin-left:8px;">×</button></div><textarea class="sp-textarea" style="min-height:60px" placeholder="Пояснение / Комментарий...">${item.text}</textarea></div>`).join('');
 }
 
 SP_APP.saveDossierForm = () => {
     SP_APP.syncDynamicList('prof'); SP_APP.syncDynamicList('pref'); SP_APP.syncDynamicList('services'); SP_APP.syncRoadmap(); ['S','O'].forEach(SP_APP.syncSwotList);
     const d = state.dossier;
-    d.age = document.getElementById('d-age').value.trim(); d.grade = document.getElementById('d-grade').value.trim(); d.eng = document.getElementById('d-eng').value.trim(); d.budget = document.getElementById('d-budget').value.trim(); d.gpa = document.getElementById('d-gpa').value.trim(); d.hsCountry = document.getElementById('d-hs-country').value.trim(); d.date = document.getElementById('d-date').value.trim(); d.testStatus = document.getElementById('d-test-status').value; d.testDetails = document.getElementById('d-test-details').value.trim(); d.expertComment = document.getElementById('d-expert-comment').innerHTML; d.finalCost = document.getElementById('d-final-cost').value.trim();
+    d.age = $el('d-age').value.trim(); d.grade = $el('d-grade').value.trim(); d.eng = $el('d-eng').value.trim(); d.budget = $el('d-budget').value.trim(); d.gpa = $el('d-gpa').value.trim(); d.hsCountry = $el('d-hs-country').value.trim(); d.date = $el('d-date').value.trim(); d.testStatus = $el('d-test-status').value; d.testDetails = $el('d-test-details').value.trim(); d.expertComment = $el('d-expert-comment').innerHTML; d.finalCost = $el('d-final-cost').value.trim();
     
-    const cboxes = document.querySelectorAll('#d-country-checks input:checked, #custom-countries-container input:checked');
+    const cboxes = $qAll('#d-country-checks input:checked, #custom-countries-container input:checked');
     let selC = Array.from(cboxes).map(cb => cb.value);
-    const other = document.getElementById('d-country-other').value.trim();
+    const other = $el('d-country-other').value.trim();
     if(other && !selC.includes(other)) selC.push(other);
     d.countries = Array.from(new Set(selC));
     
@@ -328,7 +337,7 @@ SP_APP.handleCountryInput = (country, el) => {
 };
 
 SP_APP.updateTextMarker = (country, len) => {
-    const marker = document.getElementById(`marker-${country}`); if(!marker) return;
+    const marker = $el(`marker-${country}`); if(!marker) return;
     let text = ""; let cls = "safe";
     if(len < 1500) { text = "Займет около 1/3 страницы"; cls = "safe"; }
     else if(len < 2500) { text = "Займет около половины страницы"; cls = "safe"; }
@@ -349,14 +358,14 @@ SP_APP.handleCountryPaste = (e, el) => {
 };
 
 SP_APP.applyTemplate = (country, type) => {
-    const editor = document.getElementById(`ta-country-${country}`); if(!editor) return;
+    const editor = $el(`ta-country-${country}`); if(!editor) return;
     let newText = ""; const nc = normCountry(country);
     if(type !== 'custom' && DB.texts[nc] && DB.texts[nc][type]) { newText = DB.texts[nc][type]; }
     editor.innerHTML = newText; SP_APP.handleCountryInput(country, editor);
 };
 
 SP_APP.updatePagePredictor = () => {
-    const predictor = document.getElementById('sp-page-predictor'); if(!predictor) return;
+    const predictor = $el('sp-page-predictor'); if(!predictor) return;
     const d = state.dossier; const cNotes = d.countries.filter(c => d.countryNotes[c] && d.countryNotes[c].include && d.countryNotes[c].text.trim());
     if(cNotes.length === 0) { predictor.innerHTML = `<div style="font-weight:700; font-size:13px; color:var(--sp-dark); display:flex; align-items:center;">${SP_PREDICTOR_ICONS.chart} Распределение по страницам в PDF</div><div style="font-size:12px; color:#666; margin-top:5px;">Пока нет введенных текстов.</div>`; return; }
 
@@ -378,7 +387,7 @@ SP_APP.updatePagePredictor = () => {
 };
 
 function renderCountryStrategy() {
-    const c = document.getElementById('d-countries-container');
+    const c = $el('d-countries-container');
     if(!state.dossier.countries.length) { c.innerHTML = "<div style='color:#666'>Страны не выбраны. Вернитесь назад и выберите страны.</div>"; return; }
     
     let html = "";
@@ -401,7 +410,7 @@ function renderCountryStrategy() {
     c.innerHTML = html;
     setTimeout(() => {
         state.dossier.countries.forEach(country => {
-            const ta = document.getElementById(`ta-country-${country}`);
+            const ta = $el(`ta-country-${country}`);
             if(ta) SP_APP.updateTextMarker(country, getVisualLength(ta.innerHTML));
         });
         SP_APP.updatePagePredictor();
@@ -418,13 +427,13 @@ SP_APP.generateDossierPreview = () => {
                 const textLen = getVisualLength(noteObj.text);
                 if (textLen === 0) {
                     alert(`Пожалуйста, введите текст для добавленной страны "${country}" (или снимите галочку "Включить в PDF").`);
-                    const ta = document.getElementById(`ta-country-${country}`); if(ta) ta.focus(); return; 
+                    const ta = $el(`ta-country-${country}`); if(ta) ta.focus(); return; 
                 }
             }
         }
     }
     state.hasDossier = true;
-    const area = document.getElementById('dossier-print-area'); area.innerHTML = "";
+    const area = $el('dossier-print-area'); area.innerHTML = "";
     generateDossierHTML(area); SP_APP.goTo('step-4a');
 };
 
@@ -522,10 +531,10 @@ function generateDossierHTML(container) {
 
 /* --- SELECTION MODE NAVIGATION --- */
 SP_APP.selectMode = (m,el) => { 
-    state.mode=m; document.querySelectorAll('.sp-mode-card').forEach(x=>x.classList.remove('active')); el.classList.add('active'); 
-    document.querySelector('.sp-step-tag[data-step="3"]').style.display = (m==='unis')?'none':'block'; 
-    document.querySelector('.sp-step-tag[data-step="4"]').style.display = (m==='majors')?'none':'block'; 
-    document.querySelector('.sp-step-tag[data-step="5"]').style.display = (m==='majors')?'none':'block'; 
+    state.mode=m; $qAll('.sp-mode-card').forEach(x=>x.classList.remove('active')); el.classList.add('active'); 
+    appRoot.querySelector('.sp-step-tag[data-step="3"]').style.display = (m==='unis')?'none':'block'; 
+    appRoot.querySelector('.sp-step-tag[data-step="4"]').style.display = (m==='majors')?'none':'block'; 
+    appRoot.querySelector('.sp-step-tag[data-step="5"]').style.display = (m==='majors')?'none':'block'; 
 };
 
 SP_APP.nextStep = () => {
@@ -544,7 +553,7 @@ SP_APP.prevStep = () => {
 
 /* --- MAJORS LOGIC --- */
 function setupMajorFilters(){
-    const inp=document.getElementById('f-major-name'); const sug=document.getElementById('suggest-major-name');
+    const inp=$el('f-major-name'); const sug=$el('suggest-major-name');
     inp.addEventListener('input',()=>{
         filterMajors(true); const v=inp.value.toLowerCase();
         if(v.length>0){
@@ -556,9 +565,9 @@ function setupMajorFilters(){
     inp.addEventListener('blur',()=>setTimeout(()=>sug.classList.remove('show'),200));
     sug.addEventListener('click',e=>{ if(e.target.classList.contains('sp-s-item')){ inp.value=e.target.childNodes[0].textContent.trim(); filterMajors(true); sug.classList.remove('show'); } });
 }
-function filterMajors(reset){ const q = document.getElementById('f-major-name').value.toLowerCase(); state.currentFilteredMajors = DB.majors.filter(m=>!q || m.name.toLowerCase().includes(q)); if(reset) state.majorsVisible=10; renderMajorsGrid(); }
+function filterMajors(reset){ const q = $el('f-major-name').value.toLowerCase(); state.currentFilteredMajors = DB.majors.filter(m=>!q || m.name.toLowerCase().includes(q)); if(reset) state.majorsVisible=10; renderMajorsGrid(); }
 function renderMajorsGrid(){
-    const grid=document.getElementById('grid-majors'); const btn=document.getElementById('btn-load-more-majors'); grid.innerHTML="";
+    const grid=$el('grid-majors'); const btn=$el('btn-load-more-majors'); grid.innerHTML="";
     if(!state.currentFilteredMajors.length) { grid.innerHTML='<div style="grid-column:1/-1;text-align:center;color:#999;padding:20px;">Ничего не найдено</div>'; btn.style.display='none'; return; }
     state.currentFilteredMajors.slice(0,state.majorsVisible).forEach(m=>{
         const isSel=state.selected.majors.some(x=>x.name===m.name);
@@ -575,7 +584,7 @@ SP_APP.toggleMajor = (name)=>{
     if(idx>=0) state.selected.majors.splice(idx,1); else { const obj=DB.majors.find(x=>x.name===name); if(obj)state.selected.majors.push(obj); }
     renderMajorCart(); renderMajorsGrid();
 };
-function renderMajorCart(){ const c=document.getElementById('cart-majors'); c.innerHTML=!state.selected.majors.length?'<div style="font-size:12px;color:#999;align-self:center;">Пока ничего не выбрано</div>':state.selected.majors.map(m=>`<span class="sp-cart-item">${m.name}<button type="button" onclick="event.stopPropagation(); SP_APP.toggleMajor('${m.name}')">✕</button></span>`).join(''); }
+function renderMajorCart(){ const c=$el('cart-majors'); c.innerHTML=!state.selected.majors.length?'<div style="font-size:12px;color:#999;align-self:center;">Пока ничего не выбрано</div>':state.selected.majors.map(m=>`<span class="sp-cart-item">${m.name}<button type="button" onclick="event.stopPropagation(); SP_APP.toggleMajor('${m.name}')">✕</button></span>`).join(''); }
 
 /* --- UNIS LOGIC --- */
 function setupUniFiltersUI() {
@@ -583,7 +592,7 @@ function setupUniFiltersUI() {
     createCustomDropdown('u-f-major', 'sug-u-major', 'majors'); createCustomDropdown('u-f-level', 'sug-u-level', 'level');
 }
 function createCustomDropdown(inputId, sugId, filterKey) {
-    const inp = document.getElementById(inputId); const sug = document.getElementById(sugId);
+    const inp = $el(inputId); const sug = $el(sugId);
     const getAvailableOptions = () => {
         const f = DB.unis.filter(u => {
             return (filterKey==='country' || !state.fUni.country.length || state.fUni.country.includes(u.country)) &&
@@ -620,7 +629,7 @@ function createCustomDropdown(inputId, sugId, filterKey) {
     document.addEventListener('click', (e) => { if(!inp.contains(e.target) && !sug.contains(e.target)) sug.classList.remove('show'); });
 }
 function renderUniFilterTags() {
-    const c = document.getElementById('uni-filter-tags'); let h = "";
+    const c = $el('uni-filter-tags'); let h = "";
     ['country', 'name', 'majors', 'level'].forEach(key => { state.fUni[key].forEach(val => { h += `<span class="sp-f-tag">${val} <button type="button" onclick="event.stopPropagation(); SP_APP.removeUniFilter('${key}', '${val.replace(/'/g,"\\'")}')">×</button></span>`; }); });
     c.innerHTML = h;
 }
@@ -629,11 +638,11 @@ function filterUnis(reset) {
     const f = state.fUni;
     const res = DB.unis.filter(u => (!f.country.length||f.country.includes(u.country)) && (!f.name.length||f.name.includes(u.name)) && (!f.majors.length||f.majors.includes(u.major)) && (!f.level.length||f.level.includes(u.level)));
     state.currentGroupedUnis = res; if(reset) state.unisVisible = 10;
-    const st = document.getElementById('uni-results-status'); if(st) st.textContent = `Найдено: ${res.length} программ`;
+    const st = $el('uni-results-status'); if(st) st.textContent = `Найдено: ${res.length} программ`;
     renderUniGrid();
 }
 function renderUniGrid() {
-    const grid = document.getElementById('grid-unis'); const btn = document.getElementById('btn-load-more-unis'); grid.innerHTML = "";
+    const grid = $el('grid-unis'); const btn = $el('btn-load-more-unis'); grid.innerHTML = "";
     if(!state.currentGroupedUnis.length) { grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#999;padding:20px;">Ничего не найдено</div>'; btn.style.display='none'; return; }
     state.currentGroupedUnis.slice(0, state.unisVisible).forEach(u => {
         let isSel = false; if(state.selected.countries[u.country]) isSel = state.selected.countries[u.country].schools.some(s => s.name === u.name && s.major === u.major);
@@ -671,7 +680,7 @@ SP_APP.toggleUni = (name, country, major) => {
 };
 
 function renderUniCart(){
-    const cart = document.getElementById('cart-unis-preview'); 
+    const cart = $el('cart-unis-preview'); 
     const countries = state.selected.countryOrder;
     if(!countries.length) { cart.innerHTML='<div style="font-size:12px;color:#999;align-self:center;">Пока пусто</div>'; return; }
     
@@ -689,40 +698,40 @@ function renderUniCart(){
 }
 
 SP_APP.openCustomUniModal = () => {
-    document.getElementById('c-u-country').value = "";
-    document.getElementById('c-u-name').value = "";
-    document.getElementById('c-u-major').value = "";
-    document.getElementById('c-u-level').value = "";
-    document.getElementById('c-u-cost').value = "";
-    document.getElementById('c-u-site').value = "";
-    document.getElementById('c-u-duration').value = "";
-    document.getElementById('c-u-scholarship').value = "";
-    document.getElementById('c-u-deadline-type').value = "rolling";
-    document.getElementById('c-u-deadline-date-wrap').style.display = "none";
-    document.getElementById('c-u-deadline-text-wrap').style.display = "none";
-    document.getElementById('c-u-deadline-date').value = "";
-    document.getElementById('c-u-deadline-text').value = "";
-    document.getElementById('c-u-status').value = "none";
-    document.getElementById('c-u-note-uni').value = "";
-    document.getElementById('c-u-country-note').value = "";
+    $el('c-u-country').value = "";
+    $el('c-u-name').value = "";
+    $el('c-u-major').value = "";
+    $el('c-u-level').value = "";
+    $el('c-u-cost').value = "";
+    $el('c-u-site').value = "";
+    $el('c-u-duration').value = "";
+    $el('c-u-scholarship').value = "";
+    $el('c-u-deadline-type').value = "rolling";
+    $el('c-u-deadline-date-wrap').style.display = "none";
+    $el('c-u-deadline-text-wrap').style.display = "none";
+    $el('c-u-deadline-date').value = "";
+    $el('c-u-deadline-text').value = "";
+    $el('c-u-status').value = "none";
+    $el('c-u-note-uni').value = "";
+    $el('c-u-country-note').value = "";
     
-    document.getElementById('sp-modal-custom').style.setProperty('display', 'flex', 'important');
+    $el('sp-modal-custom').style.setProperty('display', 'flex', 'important');
 };
 
 SP_APP.saveCustomUni = () => {
-    const country = document.getElementById('c-u-country').value.trim(); 
-    const name = document.getElementById('c-u-name').value.trim(); 
-    const major = document.getElementById('c-u-major').value.trim();
+    const country = $el('c-u-country').value.trim(); 
+    const name = $el('c-u-name').value.trim(); 
+    const major = $el('c-u-major').value.trim();
     if(!country || !name || !major) return alert("Заполните Страну, Название и Специальность.");
     
-    let dType = document.getElementById('c-u-deadline-type').value;
+    let dType = $el('c-u-deadline-type').value;
     let finalDeadline = "Rolling admission";
-    if(dType === 'date') finalDeadline = document.getElementById('c-u-deadline-date').value;
-    if(dType === 'text') finalDeadline = document.getElementById('c-u-deadline-text').value.trim();
+    if(dType === 'date') finalDeadline = $el('c-u-deadline-date').value;
+    if(dType === 'text') finalDeadline = $el('c-u-deadline-text').value.trim();
 
-    const duration = document.getElementById('c-u-duration').value.trim();
-    const scholarship = document.getElementById('c-u-scholarship').value.trim();
-    let uniNote = document.getElementById('c-u-note-uni').value.trim();
+    const duration = $el('c-u-duration').value.trim();
+    const scholarship = $el('c-u-scholarship').value.trim();
+    let uniNote = $el('c-u-note-uni').value.trim();
     
     let combinedNote = "";
     if(duration) combinedNote += `<b>Продолжительность обучения:</b> ${duration}<br>`;
@@ -730,7 +739,7 @@ SP_APP.saveCustomUni = () => {
     if(duration || scholarship) combinedNote += `<br>`;
     combinedNote += uniNote;
 
-    const countryNote = document.getElementById('c-u-country-note').value.trim();
+    const countryNote = $el('c-u-country-note').value.trim();
 
     if(!state.selected.countries[country]) {
         state.selected.countries[country] = { note: countryNote, schools: [] };
@@ -743,11 +752,11 @@ SP_APP.saveCustomUni = () => {
 
     const payload = {
         name, country, major, 
-        level: document.getElementById('c-u-level').value.trim(), 
-        cost: document.getElementById('c-u-cost').value.trim(), 
-        site: document.getElementById('c-u-site').value.trim(), 
+        level: $el('c-u-level').value.trim(), 
+        cost: $el('c-u-cost').value.trim(), 
+        site: $el('c-u-site').value.trim(), 
         duration, scholarship, deadline: finalDeadline, 
-        status: document.getElementById('c-u-status').value,
+        status: $el('c-u-status').value,
         map: "", city: "", 
         note: combinedNote,
         pageBreak: false,
@@ -764,16 +773,16 @@ SP_APP.saveCustomUni = () => {
         }).catch(e => console.log('Apps Script Error', e));
     }
     
-    document.getElementById('sp-modal-custom').style.setProperty('display', 'none', 'important'); 
+    $el('sp-modal-custom').style.setProperty('display', 'none', 'important'); 
     renderUniCart(); 
     filterUnis(true);
 };
 
 /* --- COMMENTS & SORTING --- */
 function renderComments() {
-    const b = document.getElementById('comm-major-block');
+    const b = $el('comm-major-block');
     b.style.display = (state.mode === 'full' || state.mode === 'majors') && state.selected.majors.length ? 'block' : 'none';
-    const con = document.getElementById('comments-container'); con.innerHTML="";
+    const con = $el('comments-container'); con.innerHTML="";
     
     // Очистка мертвых стран в order
     state.selected.countryOrder = state.selected.countryOrder.filter(c => state.selected.countries[c]);
@@ -882,7 +891,7 @@ function handleDrop(e) {
     }
     return false;
 }
-function handleDragEnd(e) { this.classList.remove('dragging'); document.querySelectorAll('.sp-country-group-wrap').forEach(el => el.classList.remove('over')); }
+function handleDragEnd(e) { this.classList.remove('dragging'); $qAll('.sp-country-group-wrap').forEach(el => el.classList.remove('over')); }
 
 SP_APP.moveCountry = (idx, dir) => {
     const arr = state.selected.countryOrder;
@@ -901,7 +910,7 @@ SP_APP.updUniSetting = (cName, sIdx, field, val) => {
     }
 };
 SP_APP.toggleLocalDeadline = (cName, sIdx, type) => {
-    const wrap = document.getElementById(`dl-wrap-${sIdx}`);
+    const wrap = $el(`dl-wrap-${sIdx}`);
     if(!wrap) return;
     if(type === 'date') {
         wrap.style.display = 'block';
@@ -913,7 +922,7 @@ SP_APP.toggleLocalDeadline = (cName, sIdx, type) => {
 
 /* --- FINAL PDF --- */
 function generateFullPreview() {
-    const area = document.getElementById('print-area'); area.innerHTML="";
+    const area = $el('print-area'); area.innerHTML="";
     
     if (state.hasDossier) { generateDossierHTML(area); }
 
@@ -934,7 +943,6 @@ function generateFullPreview() {
     }
 
     if (state.mode !== 'unis' && state.selected.majors.length) {
-        // Добавляем общий комментарий к направлениям на первую страницу специальностей
         let firstPageHtml = "";
         if(state.selected.majorComment) {
             firstPageHtml += `<div class="pdf-block-title" style="margin-top:0;">${SP_ICONS.message} Общий комментарий к направлениям</div><div class="pdf-text-block" style="margin-bottom:20px;">${state.selected.majorComment}</div>`;
@@ -993,7 +1001,6 @@ function generateFullPreview() {
                 const group = uniGroups[uName]; 
                 const first = group.items[0]; 
                 
-                // Проверяем флаги pageBreak у программ этого ВУЗа
                 let forceBreak = group.items.some(x => x.pageBreak);
                 if (forceBreak || uniCounter >= 4) {
                     startNewPage();
@@ -1008,7 +1015,7 @@ function generateFullPreview() {
                     if(pItem.status === 'yellow') statusHtml = `<span class="sp-status-tag sp-status-yellow">🟡 Срочно</span>`;
                     
                     let dlText = pItem.deadline;
-                    if(dlText && dlText.includes('-') && !dlText.includes(' ')) dlText = formatDateRu(dlText); // если формат YYYY-MM-DD
+                    if(dlText && dlText.includes('-') && !dlText.includes(' ')) dlText = formatDateRu(dlText); 
                     
                     let deadlineLineHtml = "";
                     if(dlText || statusHtml) {
@@ -1066,7 +1073,7 @@ async function processPDFDownload(fileName, rootElementId, event) {
     btn.disabled = true;
 
     try {
-        const pages = document.getElementById(rootElementId).querySelectorAll('.pdf-page'); 
+        const pages = $el(rootElementId).querySelectorAll('.pdf-page'); 
         if(!pages.length) return;
         
         const { jsPDF } = window.jspdf; 
